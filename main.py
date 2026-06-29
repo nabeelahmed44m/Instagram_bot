@@ -72,6 +72,8 @@ def generate_model_image(location, dress, setting, activity, ref_photos):
     f"She is wearing {dress['description']}, {dress['color']} color with {dress['pattern']}. "
     f"She is {activity} at {location['name']}, Pakistan. "
     f"Time of day: {setting}. "
+    f"Captured on an iPhone 16 Pro using the main camera in standard Photo mode. "
+    f"Natural handheld framing with realistic smartphone processing. "  
     f"The scene should look like a real everyday location with natural surroundings and authentic details. "
     f"The photograph should appear to have been taken casually on a modern smartphone. "
     f"Use natural lighting with realistic shadows and accurate colors. "
