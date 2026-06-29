@@ -2,7 +2,7 @@ name: Daily Instagram Post
 
 on:
   schedule:
-    - cron: '0 20 * * *'  # 12 PM PST (8 PM UTC)
+    - cron: '0 7 * * *'   # 12 PM PKT (7 AM UTC)
   workflow_dispatch:       # allows manual trigger from GitHub
 
 jobs:
