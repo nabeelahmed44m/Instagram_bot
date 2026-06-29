@@ -1,5 +1,6 @@
 google-genai
 openai
+fal-client
 requests
 Pillow
 python-dotenv
