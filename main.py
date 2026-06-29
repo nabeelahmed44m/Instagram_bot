@@ -74,7 +74,7 @@ def generate_model_image(location, dress, setting, activity, ref_photos):
         f"The background must look like a real everyday location — natural flat lighting, "
         f"slightly busy or lived-in environment, muted desaturated natural colors, no dramatic filters, "
         f"no cinematic color grading, no oversaturation, no glowing highlights, no over-exposure. "
-        f"Lighting must be flat and diffused like a cloudy day or indoor light — no strong sun rays, "
+        f"Lighting must be flat and diffused like a cloudy day or indoor light or a good sunny day — no strong sun rays, "
         f"no god rays, no bloom, no lens flare, no HDR effect, no painting-like sheen. "
         f"It should look like a real photo taken on a smartphone — slightly noisy, natural skin texture, "
         f"no airbrushing, no smoothing. Casual environment, genuine candid moment. "
