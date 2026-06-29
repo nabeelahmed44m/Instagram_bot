@@ -76,7 +76,7 @@ def generate_model_image(location, dress, setting, activity, ref_photos):
     f"Natural handheld framing with realistic smartphone processing. "  
     f"The scene should look like a real everyday location with natural surroundings and authentic details. "
     f"The photograph should appear to have been taken casually on a modern smartphone. "
-    f"Use natural lighting with realistic shadows and accurate colors. "
+    f"Use natural lighting with realistic shadows and accurate colors. and also make sure the skin tone is not very clean which gives a look its an AI generated image. "
     f"Preserve natural skin texture with slight smartphone camera noise. "
     f"No beauty filters, skin smoothing, airbrushing, glamour retouching, studio lighting, HDR, cinematic color grading, lens flare, bloom, or artificial lighting effects. "
     f"The final image should be indistinguishable from a genuine smartphone photograph of the same person in a different place and outfit."
