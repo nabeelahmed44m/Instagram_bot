@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+last_post.json
+instagram_session.json
+.DS_Store
