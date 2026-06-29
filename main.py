@@ -63,25 +63,22 @@ def load_all_reference_photos():
 
 def generate_model_image(location, dress, setting, activity, ref_photos):
     prompt = (
-        f"I am providing 4 reference photos of the same real person. "
-        f"Generate a new photo of this EXACT person — same face shape, same hazel-green eyes, "
-        f"same dark brown-black straight hair, same fair skin tone, same thick defined eyebrows, "
-        f"same sharp nose, same high cheekbones. Do not change any facial features. "
-        f"She is wearing {dress['description']}, {dress['color']} color with {dress['pattern']}. "
-        f"She has a warm natural smile with slightly visible teeth, happy bright eyes. "
-        f"She is {activity} at {location['name']}, Pakistan. "
-        f"Time of day: {setting}. "
-        f"The background must look like a real everyday location — natural flat lighting, "
-        f"slightly busy or lived-in environment, muted desaturated natural colors, no dramatic filters, "
-        f"no cinematic color grading, no oversaturation, no glowing highlights, no over-exposure. "
-        f"Lighting must be flat and diffused like a cloudy day or indoor light or a good sunny day — no strong sun rays, "
-        f"no god rays, no bloom, no lens flare, no HDR effect, no painting-like sheen. "
-        f"It should look like a real photo taken on a smartphone — slightly noisy, natural skin texture, "
-        f"no airbrushing, no smoothing. Casual environment, genuine candid moment. "
-        f"No studio look, no AI aesthetic, no glowing skin, no over-lit face. "
-        f"The face must be identical to the person in all 4 reference photos."
-        f"Preserve the person's facial identity exactly. Do not change facial structure, eyes, nose, lips, jawline, hairline, or age."
-    )
+    f"I am providing 4 reference photos of the same real person. "
+    f"Generate a new photograph of this exact person while preserving her facial identity. "
+    f"Use only the uploaded reference photos to determine her appearance. "
+    f"Do not redesign, reinterpret, or alter her face in any way. "
+    f"Keep her facial structure, eyes, eyebrows, nose, lips, jawline, hairline, hairstyle, skin tone, and age exactly the same as shown in the reference photos. "
+    f"Only change the clothing, pose, and environment. "
+    f"She is wearing {dress['description']}, {dress['color']} color with {dress['pattern']}. "
+    f"She is {activity} at {location['name']}, Pakistan. "
+    f"Time of day: {setting}. "
+    f"The scene should look like a real everyday location with natural surroundings and authentic details. "
+    f"The photograph should appear to have been taken casually on a modern smartphone. "
+    f"Use natural lighting with realistic shadows and accurate colors. "
+    f"Preserve natural skin texture with slight smartphone camera noise. "
+    f"No beauty filters, skin smoothing, airbrushing, glamour retouching, studio lighting, HDR, cinematic color grading, lens flare, bloom, or artificial lighting effects. "
+    f"The final image should be indistinguishable from a genuine smartphone photograph of the same person in a different place and outfit."
+)
 
     result = openai_client.images.edit(
         model="gpt-image-1",
