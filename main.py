@@ -1,25 +1,24 @@
 import os
 import random
 import json
-import base64
 import requests
 import io
 from PIL import Image
 from datetime import datetime
 from dotenv import load_dotenv
 from google import genai
-import openai
+from google.genai import types
 from config import LOCATIONS, DRESS_STYLES, SETTINGS
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BUFFER_API_KEY = os.getenv("BUFFER_API_KEY")
 BUFFER_CHANNEL_ID = os.getenv("BUFFER_CHANNEL_ID")
 
 gemini = genai.Client(api_key=GEMINI_API_KEY)
-openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+IMAGE_MODEL = "gemini-2.5-flash-image"
 
 REFERENCE_PHOTOS = ["1.png", "2.png", "3.png", "4.png"]
 
@@ -51,48 +50,49 @@ mutation createPost($input: CreatePostInput!) {
 
 
 def load_all_reference_photos():
-    refs = []
-    for path in REFERENCE_PHOTOS:
-        img = Image.open(path).convert("RGBA")
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        buf.seek(0)
-        refs.append((f"ref_{path}", buf.getvalue(), "image/png"))
-    return refs
+    return [Image.open(path).convert("RGB") for path in REFERENCE_PHOTOS]
 
 
 def generate_model_image(location, dress, setting, activity, ref_photos):
     prompt = (
-    f"I am providing 4 reference photos of the same real person. "
-    f"Generate a new photograph of this exact person while preserving her facial identity. "
-    f"Use only the uploaded reference photos to determine her appearance. "
-    f"Do not redesign, reinterpret, or alter her face in any way. "
-    f"Keep her facial structure, eyes, eyebrows, nose, lips, jawline, hairline, hairstyle, skin tone, and age exactly the same as shown in the reference photos. "
-    f"Only change the clothing, pose, and environment. "
-    f"She is wearing {dress['description']}, {dress['color']} color with {dress['pattern']}. "
-    f"She is {activity} at {location['name']}, Pakistan. "
-    f"Time of day: {setting}. "
-    f"Captured on an iPhone 16 Pro using the main camera in standard Photo mode. "
-    f"Natural handheld framing with realistic smartphone processing. "  
-    f"The scene should look like a real everyday location with natural surroundings and authentic details. "
-    f"The photograph should appear to have been taken casually on a modern smartphone. "
-    f"Use natural lighting with realistic shadows and accurate colors. and also make sure the skin tone is not very clean which gives a look its an AI generated image. "
-    f"Preserve natural skin texture with slight smartphone camera noise. "
-    f"No beauty filters, skin smoothing, airbrushing, glamour retouching, studio lighting, HDR, cinematic color grading, lens flare, bloom, or artificial lighting effects. "
-    f"The final image should be indistinguishable from a genuine smartphone photograph of the same person in a different place and outfit."
-)
-
-    result = openai_client.images.edit(
-        model="gpt-image-1",
-        image=ref_photos,
-        prompt=prompt,
-        size="1024x1536",
-        quality="high",
-        n=1,
+        f"I am providing 4 reference photos of the same person. "
+        f"Generate a new photograph of this exact person, preserving her facial identity precisely: "
+        f"same facial structure, eyes, eyebrows, nose, lips, jawline, hairline, hairstyle, skin tone, and age as in the reference photos. "
+        f"Only the clothing, pose, and environment change. "
+        f"She is wearing {dress['description']}, {dress['color']} color with {dress['pattern']}. "
+        f"She is {activity} at {location['name']}, Pakistan. "
+        f"Time of day: {setting}. "
+        f"A casual candid photo taken on an iPhone 16 Pro main camera in standard Photo mode, natural handheld framing, "
+        f"framed so her face is clearly visible and detailed. "
+        f"Render her skin the way a phone camera actually captures it: visible pores, faint vellus hair on the cheeks, "
+        f"a slight natural oil sheen on the nose and forehead, subtle under-eye texture, a few flyaway hairs, "
+        f"mildly uneven skin tone, and light smartphone sensor noise. "
+        f"Natural ambient lighting with realistic shadows, slightly imperfect white balance, true-to-life colors. "
+        f"The scene is a real everyday location with natural surroundings and authentic details."
     )
 
-    img_bytes = base64.b64decode(result.data[0].b64_json)
-    return img_bytes
+    response = gemini.models.generate_content(
+        model=IMAGE_MODEL,
+        contents=ref_photos + [prompt],
+        config=types.GenerateContentConfig(
+            image_config=types.ImageConfig(aspect_ratio="2:3"),
+        ),
+    )
+
+    for part in response.candidates[0].content.parts:
+        if getattr(part, "inline_data", None) is not None:
+            return part.inline_data.data
+    raise RuntimeError(f"Model returned no image: {response.candidates[0].content}")
+
+
+def add_phone_realism(img):
+    # Soften over-sharp AI edges and add faint sensor noise so the
+    # image reads like a real smartphone photo
+    w, h = img.size
+    img = img.resize((int(w * 0.92), int(h * 0.92)), Image.LANCZOS)
+    img = img.resize((w, h), Image.LANCZOS)
+    noise = Image.effect_noise((w, h), 14).convert("RGB")
+    return Image.blend(img, noise, 0.025)
 
 
 def upload_image_to_fal(img_bytes, filename):
@@ -100,9 +100,10 @@ def upload_image_to_fal(img_bytes, filename):
     import tempfile, os
     tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
     try:
-        # Convert to JPEG before uploading
         img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-        img.save(tmp.name, format="JPEG", quality=95)
+        img = add_phone_realism(img)
+        # phone-typical JPEG compression, not pristine quality
+        img.save(tmp.name, format="JPEG", quality=86)
         url = fal_client.upload_file(tmp.name)
         return url
     finally:
