@@ -20,7 +20,16 @@ gemini = genai.Client(api_key=GEMINI_API_KEY)
 
 IMAGE_MODEL = "gemini-2.5-flash-image"
 
-REFERENCE_PHOTOS = ["1.png", "2.png", "3.png", "4.png"]
+REFERENCE_PHOTOS = [
+    "refs/ref_01.png",  # frontal neutral close-up, window light — core identity anchor
+    "refs/ref_04.png",  # harsh midday sun, waist-up, dark kurta
+    "refs/ref_07.png",  # right profile, cool morning light
+    "refs/ref_08.png",  # night restaurant, warm low light
+    "refs/ref_10.png",  # candid open laugh, messy bun
+    "refs/ref_11.png",  # golden-hour frontal
+    "refs/ref_14.png",  # three-quarter view, dramatic side shadow
+    "refs/ref_20.png",  # hair fully tied back — hairline/ears/jaw anchor
+]
 
 ACTIVITIES = [
     "walking casually along a path, hair flowing naturally, glancing back at the camera with a big candid smile",
@@ -53,9 +62,9 @@ def load_all_reference_photos():
     return [Image.open(path).convert("RGB") for path in REFERENCE_PHOTOS]
 
 
-def generate_model_image(location, dress, setting, activity, ref_photos):
+def generate_model_image(location, dress, setting, activity, ref_photos, outfit_ref=None):
     prompt = (
-        f"I am providing 4 reference photos of the same person. "
+        f"I am providing {len(ref_photos)} reference photos of the same person. "
         f"Generate a new photograph of this exact person, preserving her facial identity precisely: "
         f"same facial structure, eyes, eyebrows, nose, lips, jawline, hairline, hairstyle, skin tone, and age as in the reference photos. "
         f"Only the clothing, pose, and environment change. "
@@ -71,9 +80,21 @@ def generate_model_image(location, dress, setting, activity, ref_photos):
         f"The scene is a real everyday location with natural surroundings and authentic details."
     )
 
+    contents = list(ref_photos)
+    if outfit_ref is not None:
+        prompt += (
+            f" The very last image I provided is another photo from this exact same photoshoot: "
+            f"the same person, in the same outfit, at the same location, at the same time of day. "
+            f"Her dress must be exactly identical to that photo — same garment, same color, same pattern, "
+            f"same fabric, same fit — and the location, weather, and lighting must match it too. "
+            f"Only her pose, activity, and the camera angle are different."
+        )
+        contents.append(outfit_ref)
+    contents.append(prompt)
+
     response = gemini.models.generate_content(
         model=IMAGE_MODEL,
-        contents=ref_photos + [prompt],
+        contents=contents,
         config=types.GenerateContentConfig(
             image_config=types.ImageConfig(aspect_ratio="2:3"),
         ),
@@ -183,27 +204,27 @@ def main():
     print(f"  Setting  : {setting}\n")
 
     ref_photos = load_all_reference_photos()
-    activity1, activity2 = random.sample(ACTIVITIES, 2)
+    num_images = random.randint(2, 4)
+    activities = random.sample(ACTIVITIES, num_images)
+    print(f"  Images   : {num_images}\n")
 
-    print("Generating model image 1...")
-    print(f"  Activity: {activity1}")
-    img1_bytes = generate_model_image(location, dress, setting, activity1, ref_photos)
-    print("  Uploading image 1...")
-    url1 = upload_image_to_fal(img1_bytes, "image1.jpg")
-    print(f"  Image 1: {url1}")
+    all_images = []
+    outfit_ref = None
+    for i, activity in enumerate(activities, 1):
+        print(f"Generating model image {i}/{num_images}...")
+        print(f"  Activity: {activity}")
+        img_bytes = generate_model_image(location, dress, setting, activity, ref_photos, outfit_ref)
+        if outfit_ref is None:
+            # first image becomes the outfit/location reference for the rest
+            outfit_ref = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        print(f"  Uploading image {i}...")
+        url = upload_image_to_fal(img_bytes, f"image{i}.jpg")
+        print(f"  Image {i}: {url}\n")
+        all_images.append(url)
 
-    print("\nGenerating model image 2...")
-    print(f"  Activity: {activity2}")
-    img2_bytes = generate_model_image(location, dress, setting, activity2, ref_photos)
-    print("  Uploading image 2...")
-    url2 = upload_image_to_fal(img2_bytes, "image2.jpg")
-    print(f"  Image 2: {url2}")
-
-    print("\nGenerating caption...")
+    print("Generating caption...")
     caption = generate_caption(location, dress, setting)
     print(f"\n--- CAPTION ---\n{caption}\n---------------\n")
-
-    all_images = [url1, url2]
 
     with open("last_post.json", "w") as f:
         json.dump({

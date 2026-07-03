@@ -5,3 +5,5 @@ last_post.json
 instagram_session.json
 .DS_Store
 .claude/
+ref_candidates/
+samples/
